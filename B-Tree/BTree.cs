@@ -51,7 +51,7 @@ namespace B_Tree
         /// Insert or update a key/value
         /// Returns true if a new key was added; false if an existing key was updated;
         /// </summary>
-        public bool AddUpdate(K key, V value)
+        public bool AddOrUpdate(K key, V value)
         {
             // If root is full, grow tree height by splitting root.
             if(_root.KeyCount == 2 * T - 1)
@@ -223,33 +223,46 @@ namespace B_Tree
             // Median index in y
             int m = T - 1;
 
-            // z gets y's right half keys/values
-            for (int k = 0; k < T - 1; k++)
+            // Cache median (must be done before we mutate y)
+            var medianKey = y.Keys[m];
+            var medianValue = y.Values[m];
+
+            // ---- move right half keys/values to z ----
+            // right side begins after median
+            int rightKeyStart = m + 1;
+            int rightKeyCount = y.Keys.Count - rightKeyStart;
+
+            if (rightKeyCount > 0)
             {
-                z.Keys.Add(y.Keys[m + 1 + k]);
-                z.Values.Add(y.Values[m + 1 + k]);
+                z.Keys.AddRange(y.Keys.GetRange(rightKeyStart, rightKeyCount));
+                z.Values.AddRange(y.Values.GetRange(rightKeyStart, rightKeyCount));
+
+                y.Keys.RemoveRange(rightKeyStart, rightKeyCount);
+                y.Values.RemoveRange(rightKeyStart, rightKeyCount);
             }
 
-            // If not leaf, more children
-            if(!y.IsLeaf)
+            if (!y.IsLeaf)
             {
-                for (int k = 0; k < T; k++)
+                int rightChildStart = m + 1;
+                int rightChildCount = y.Children.Count - rightChildStart;
+
+                if (rightChildCount > 0)
                 {
-                    // Remove moved children from y
-                    y.Children.RemoveRange(m + 1, T);
+                    z.Children.AddRange(y.Children.GetRange(rightChildStart, rightChildCount));
+                    y.Children.RemoveRange(rightChildStart, rightChildCount);
                 }
             }
 
-            // Promote median key/value to x
-            x.Keys.Insert(i, y.Keys[m]);
-            x.Values.Insert(i, y.Values[m]);
+            // Promote median to parent x
+            x.Keys.Insert(i, medianKey);
+            x.Values.Insert(i, medianValue);
 
             // Insert new right child z
             x.Children.Insert(i + 1, z);
 
-            // Shrink y to left half
-            y.Keys.RemoveRange(m, y.KeyCount - m); // removes median and right half
-            y.Values.RemoveRange(m, y.Values.Count - m);
+            // Remove median from y (now left node)
+            y.Keys.RemoveAt(m);
+            y.Values.RemoveAt(m);
         }
     }
 }
