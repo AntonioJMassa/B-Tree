@@ -6,15 +6,53 @@ using System.Collections.Generic;
 
 namespace B_Tree
 {
+    /// <summary>
+    /// Generic B-Tree (not B+). Stores keys in internal nodes and leaves.
+    /// Supports: TryGet, AddOrUpdate, ContainsKey, Count, in-order iteration, range enumeration.
+    /// Insert is fully implemented with node splits. Delete is scaffolded (TODO).
+    /// </summary>
+    /// <typeparam name="K"></typeparam> Key
+    /// <typeparam name="V"></typeparam> Value
     public class BTree<K,V> : IEnumerable<KeyValuePair<K, V>>
     {
+        /// <summary>
+        /// Default minimum degree (T). Max keys per node = 2*T - 1.
+        /// Tuned for in-RAM usage (fan-out ~ 64).
+        /// </summary>
+        public const int DefaultMinDegree = 32;
+
+        /// <summary>
+        /// Minimum degree (T). Max keys per node = 2 * T - 1, min (non-root) = T - 1.
+        /// </summary>
         public int T { get; }
+
+        /// <summary> Total number of distinct keys stored. </summary>
         public int Count { get; private set; }
+
+        /// <summary>
+        /// The comparer used to order keys.
+        /// </summary>
         public IComparer<K> Comparer { get; }
+
+        /// <summary>
+        /// Maximum number of keys a node can hold (derived from T).
+        /// </summary>
+        public int MaxKeys => 2 * T - 1;
+
+        /// <summary>
+        /// True if the tree is emplty
+        /// </summary>
+        public bool IsEmpty => Count == 0;
 
         private BTreeNode<K,V> _root;
 
-        public BTree(int t = 32, IComparer<K>? comparer = null)
+        /// <summary>
+        /// Create a B-Tree with the given minimum degree (T).
+        /// </summary>
+        /// <param name="t"> Minimum degree (T). Must be &gt;=2. </param>
+        /// <param name="comparer"> Optional comparer for key ordering. </param>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public BTree(int t = DefaultMinDegree, IComparer<K>? comparer = null)
         {
             if(t< 2) throw new ArgumentOutOfRangeException(nameof(t), "Minimum degree T must be >= 2." );
             T = t;
@@ -65,6 +103,21 @@ namespace B_Tree
             bool added = InsertNonFull(_root, key, value);
             if(added) Count++;
             return added;
+        }
+
+        /// <summary>
+        /// Returns the current height (levels) of the tree, counting the root level as 1.
+        /// </summary>
+        public int Height()
+        {
+            int h = 1;
+            var x = _root;
+            while(!x.IsLeaf)
+            {
+                h++;
+                x = x.Children[0];
+            }
+            return h;
         }
 
         /// <summary>
