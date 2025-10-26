@@ -105,6 +105,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BTreeDeleteTests.cs" />
     <Compile Include="BTreeErgonomicsTests.cs" />
     <Compile Include="BTreeRangeTests.cs" />
     <Compile Include="BTreeTests.cs" />
